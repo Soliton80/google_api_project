@@ -1,16 +1,15 @@
 from google.oauth2.service_account import Credentials
 from googleapiclient import discovery
-from datetime import datetime
 
 SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/drive'
 ]
-FORMAT='%Y/%m/%d %H:%M:%S'
 
 EMAIL_USER = 'ya_hungry_chef@gmail.com'
 
-# Заполниет учетные данные шефа
+# Добавьте почту шефа.
+# Введите учетные данные шефа.
 info = {
   "type": "service_account",
   "project_id": "chef-project",
@@ -24,41 +23,14 @@ info = {
   "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/test%40chef-project.iam.gserviceaccount.com"
 }
 
+SPREADSHEET_ID = '1ROfBpouFFpzILWXekFo9M8emMnCfP8OJ8-g-cO-Ireg'
 
+
+# Повторите функцию авторизации в Google Sheets API..
 def auth():
-    credentials = Credentials.from_service_account_info(
-        info=info, scopes=SCOPES)
+    credentials = Credentials.from_service_account_info(info=info, scopes=SCOPES)
     service = discovery.build('sheets', 'v4', credentials=credentials)
     return service, credentials
-
-
-def create_spreadsheet(service=None):
-    current_dateTime = datetime.now()
-    correct_time_format = current_dateTime.strftime(FORMAT)
-    
-    spreadsheet_body = {
-        'properties': {
-            'title': 'Бюджет путешествий',
-            'locale': 'ru_RU'
-},
-        'sheets': [{
-            'properties': {
-                'sheetType': 'GRID',
-                'sheetId': 0,
-                'title': correct_time_format,
-                'gridProperties': {
-                    'rowCount': 20,
-                    'columnCount': 11
-                }
-             }
-         }]
-
-    }
-    request = service.spreadsheets().create(body=spreadsheet_body)
-    response = request.execute()
-    spreadsheet_id = response['spreadsheetId']
-    return spreadsheet_id  
-
 
 def set_user_permissions(spreadsheet_id, credentials):
     permissions_body={'type': 'user', # Тип учетных данных.
@@ -73,6 +45,17 @@ def set_user_permissions(spreadsheet_id, credentials):
         fileId=spreadsheet_id,
         body=permissions_body,
         fields='id'
-    ).execute()   
-    
+    ).execute() 
 
+
+
+def get_list_obj(service):
+    response = service.files().list(
+        q='mimeType="application/vnd.google-apps.spreadsheet"')
+    return response.execute()
+
+def clear_disk(service, spreadsheets):
+    for spreadsheet in range(len(spreadsheets) - 1):
+        response = spreadsheets[spreadsheet].pop()
+        response = service.files().delete(fileId=spreadsheet['id'])
+        response.execute()
